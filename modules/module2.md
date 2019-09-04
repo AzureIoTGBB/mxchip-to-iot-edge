@@ -237,4 +237,3 @@ Copy everything, including the 'BEGIN CERTIFICATE' and 'END CERTIFICATE' lines a
 
 You are now ready to move on to [Module 3](modules/module3.md) and get your MXChip up and talking to IoT Edge
 
-
