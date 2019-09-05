@@ -1,5 +1,5 @@
 # mxchip-to-iot-edge
-Sample showing how to connect the MXChip devkit through IoT Edge
+Sample showing how to connect the [MXChip devkit](https://microsoft.github.io/azure-iot-developer-kit/) through IoT Edge
 
 This sample/hands-on lab shows step by step how to connect the popular MXChip dev kit to Azure IoT Hub through Azure IoT Edge.  
 
