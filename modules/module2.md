@@ -8,7 +8,7 @@ In this module, we are going to do the following:
 
 ## Setup IoT Edge virtual machine
 
-In this section, we are going to create and setup an Azure VM as the IoT Edge box.  Technically, it a 'real' deployment, you would use something on-premises, such as a local hardware device (PC, Raspberry Pi, VM, etc) as your IoT Edge device.  However, just for ease of setup here, we are going to use a VM in Azure. If you already have, or prefer to use, a local device, feel free. For that option, you can find the IoT Edge setup instructions here (TODO: link)
+In this section, we are going to create and setup an Azure VM as the IoT Edge box.  Technically, it a 'real' deployment, you would use something on-premises, such as a local hardware device (PC, Raspberry Pi, VM, etc) as your IoT Edge device.  However, just for ease of setup here, we are going to use a VM in Azure. If you already have, or prefer to use, a local device, feel free. For that option, you can find the IoT Edge setup instructions [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-linux)
 
 To create the IoT Edge VM in Azure, we are going to creat the VM via the Azure CLI. Specifically, to make things even easier, we are going to use a "cloud shell" in Azure to keep from having to install the Azure CLI locally.
 
@@ -73,21 +73,27 @@ az iot hub create --name {your iot hub name} --resource-group {your resource gro
 
 {your iot hub name} needs to be a globally unique name for your hub
 
-Once the IoT Hub is created, you can create an IoT Edge device in your IoT Hub with this command
+Once the IoT Hub is created, you can create an IoT device for your MXChip in your IoT Hub with this command
+
+```bash
+az iot hub device-identity create --device-id [device id] --hub-name [hub name] 
+```
+
+where [device id] is a name you make up for your iot device.  It does not need to be globally unique, just unique within your hub.  No underscores, no spaces!
+
+Run the command again (with one difference) to create the Edge device.  Note the addition of the --edge-enabled flag to let IoT Hub know we want to create an Edge device this time
 
 ```bash
 az iot hub device-identity create --device-id [device id] --hub-name [hub name] --edge-enabled
 ```
 
-where [device id] is a name you make up for your edge device.  It does not need to be globally unique, just unique within your hub.  No underscores, no spaces!
-
-Once the device is created, we need to grab it's connection string
+Once the devices are created, we need to grab their connection strings.  Run this command once for each device (the mxchip iot device and the new edge device)
 
 ```bash
 az iot hub device-identity show-connection-string --device-id [device id] --hub-name [hub name]
 ```
 
-Copy the connection string returned over to notepad or similar, we will need it later.
+Copy the connection strings returned over to notepad or similar, we will need them later.
 
 The final step (for now) in the portal is to go ahead and set a default config for our edge device, which ensures that the edge runtime gets fully deployed as soon as our edge devices gets configured for the cloud.
 
@@ -213,7 +219,7 @@ openssl s_connect -connect [vm name].[location].cloudapp.azure.com:8883 --showce
 
 This will connect to our IoT Edge device similarly to an IoT leaf device would an validates the certificate.
 
-At the top of the ouput, you can see the certificate chain, as explain in this article (TODO:  link to cert article).  However, the most important item is the verification at the bottom.  I should look like this (with the "Verify (ok)" output)
+At the top of the ouput, you can see the certificate chain, as explain in [this article](https://docs.microsoft.com/en-us/azure/iot-edge/iot-edge-certs).  However, the most important item is the verification at the bottom.  I should look like this (with the "Verify (ok)" output)
 
 ![verified cert](/images/iot-edge-verify-cert.png)
 

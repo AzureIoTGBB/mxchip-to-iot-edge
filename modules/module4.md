@@ -47,21 +47,33 @@ Navigate back to the blade for your ASA job and click on the "outputs" box to ad
 
 The next step is to specify the query.  In the upper right of the query window, click on the "Edit query" to open the query editor.  Copy/paste in this query:
 
-
-TODO:  get device id from 'connected device'
 ```SQL
+WITH CleanData
+as (
+    SELECT
+        IoTHub.ConnectionDeviceId as deviceId,
+        cast(temperature as float) as temp,
+        cast(humidity as float) as humidity
+    FROM
+        inputFromHub
+    WHERE
+        temperature is not null
+)
+
 SELECT
-    deviceID,
-    AVG(temperature) as AvgTemp,
-    AVG(humidity) as AvgHumidity,
-    System.Timestamp as eventdatetime
-INTO outputToHub
-FROM inputFromHub
-WHERE temperature IS NOT NULL
+    deviceId,
+    avg(temp) as AvgTemp,
+    avg(humidity) as AvgHumidity,
+    System.TimeStamp as AggregateDateTimeUTC
+INTO
+    [outputToHub]
+FROM
+    [CleanData]
 GROUP BY
-    deviceID,
-    TumblingWindow(s, 30)
+    deviceId, tumblingwindow(s, 30)
 ```    
+
+Note that we are not only aggregating data, but we are filtering down to just two properties (temp and humidity) that we want to pass on.
 
 * Click Save to save your query and close the editor
 
@@ -98,9 +110,24 @@ After a few minutes, on your IoT Edge box, you'll see the ASA module get deploye
 sudo iotedge list
 ```
 
+![asa running](../images/asa-module-running.png)
+
+You can also see the logs from the ASA module by running
+
+```bash
+iotedge logs -f <asa job name>
+```
+
+You can see entries once per minute of how many input events it received, output events, errors, etc
+
+![asa logs](../images/asa-module-logs.png)
+
+
 ## Seeing results
 
 If you look at the monitor-events output in the Azure portal, you should no longer see the 'every second' output, but rather you now see the aggregated output every 30 seconds.  So we are processing and aggregating data the edge.
+
+![asa results](../images/cloud-shell-success-asa.png)
 
 Now that you have your IoT device data flowing through IoT Edge, you can do all the many more sophisticated edge processing use cases.
 

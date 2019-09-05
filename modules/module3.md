@@ -8,9 +8,7 @@ Through this module, we will add that certificate to the MXChip firmware as the 
 
 ## Getting started with the MXChip.
 
-We are going to get started with the (pun intended) 'getting started' project.  To generate that project,open VS Code and connect your MXChip to the USB port on the computer.  The Azure IoT Workbench will launch within VS Code.
-
-TODO:  steps to create the 'getting started' project.
+We are going to get started with the (pun intended) 'getting started' project.  To generate that project,open VS Code and connect your MXChip to the USB port on the computer.  The Azure IoT Workbench will launch within VS Code.  Once it does, under the "Getting Started" sample project, click the "Open Sample" button to create a new version of the Getting Started sample.  We will base our MXChip firmware off of that sample.
 
 ## Customize the MXChip firmware
 
@@ -327,7 +325,7 @@ replace the cert string array with the one you generated above.  Save all the fi
 
 To bulid the firmware, first we need to 'verify' it  (in 'arduino' speak, that's the same as 'compile').  To do so, hit CTRL-ALT-R.  That will compile the code and tell if you have any errors.
 
-Once that is done, we are ready to push the new fireware to the MXChip.  In the bottom right hand of VS Code, click on the "<Select Board Type>" button and pick "TODO:  get board type".  Also, if you still see "<Select Serial Port>", click on that to select the right serial port that represents your plugged in MXChip.   
+Once that is done, we are ready to push the new fireware to the MXChip.  In the bottom right hand of VS Code, click on the "<Select Board Type>" button and for the "Selected Board", pick "AZ3166" (which is the model number for the MXChip).  Also, if you still see "<Select Serial Port>", click on that to select the right serial port that represents your plugged in MXChip.   
 
 To push the firmware, hit CTRL-ALT-U (for 'upload').  You'll see the code get 'verified' again, and then see it pushed to the MXChip device.  You'll then see the MXChip device reset itself and start to boot.
 
@@ -337,12 +335,35 @@ However, we aren't quite ready to connect to IoT Edge yet, because we need to co
 
 The first thing we need to do is to decorate our MXChip device connection string.  We need to tell the Azure IoT C SDK that we want to connect to IoT Hub, but we want to do so *through* your IoT Edge box.  To do that, take the MXChip device connection string, and onto the end of it, append a semicolon, then the phrase 'GatewayHostName=' and then the FQDN to your IoT Edge box.  An example might look like this:
 
-TODO:  sample mxchip connection string.
+```bash
+HostName=sdbiothub1.azure-devices.net;DeviceId=mxchip1;
+SharedAccessKey=flz56UH6NcvCpmzX61lBoZGr8A8AH5ytuClZg6+0rcg=;GatewayHostName=sdbazureubuntu.centralus.cloudapp.azure.com
+```
 
 Once that is done, we are ready to configure our MXChip.
 
-TODO:   finish configuration commands....
+Open up another instance of the Putty app.  Choose "Serial" for the connection, input the right COM port for your MXChip, and set the baud rate to 115200.  Hit "Connect"
 
+Hold down the "A" button on the MXChip and hit reset.  This will put the MXChip in configuration mode and you should see a configuration screen similar to the following
+
+![mxchip config screen](../images/mxchip-setup-main-screen.png)
+
+To get the MXChip connected to your wifi, run the following commands
+
+```bash
+set_wifissd  <wifi network name>
+set_wifipwd  <PSK2 secret key/password>
+```
+
+Next, we need to set the device connection string to point to our IoT Edge box.
+
+run 
+
+```bash
+set_az_iothub <connection string>
+```
+
+where \<connection string > is the connection string we just created, with the GatewayHostName on the end. You should be able to copy/paste it into this putty window.  We have seen trouble, however, with the entire connection string making it in, so be sure the whole thing makes it
 
 ### Test connectivity to IoT Hub thorugh IoT Edge.
 
@@ -364,13 +385,17 @@ sudo docker logs -f edgeHub --tail 500
 
 That will show the last few lines of the edgeHub (part of the IoT Edge runtime) logs and will 'follow' them (i.e. see new entries as they arrive)
 
-TODO:  screenshots
+Now, hit the reset button on your MXChip.  In the MXChip putty session, you should see output showing the MXChip start, get the current time from an NTP server, connect to IoT Edge, and then start sending data.  Similar to this screenshot  (click on screenshots to get a bigger version)
 
-Now, hit the reset button on your MXChip.  In the MXChip putty session, you should see output showing the MXChip start, get the current time from an NTP server, connect to IoT Edge, and then start sending data.  Similar to this screenshot
+![mxchip success](../images/mxchip-sending-success.png)
 
 in the edgeHub logs, you should see entries related to the MXChip device id connecting and edgeHub opening a connection to IoT Hub on behalf of the MXChip, similar to below
 
+![edgehub success](../images/edgehub-success.png)
+
 Finally, you should see messages flowing into the IoT Hub via the cloud shell in the azure portal.
+
+![cloud portal success](../images/cloud-shell-success-transparent.png)
 
 Note that the messages are flowing in at a rate of 1 per sec.  In the next module, we'll do some light "edge processing" to aggregate those messages "on-prem"  (remember, we are simulating that) before they are sent to Azure.   So let's move on to [Module 4](modules/module4.md)
 
