@@ -18,7 +18,7 @@
 #define RGB_LED_BRIGHTNESS 32
 
 DevI2C *i2c;
-//steve
+//iot-edge-change:  declare variables for other sensors
 static HTS221Sensor *sensor;
 static LSM6DSLSensor *accelGyro;
 static LIS2MDLSensor *magnetometer;
@@ -133,7 +133,7 @@ float readHumidity()
     return humidity;
 }
 
-//steve
+//iot-edge-change:add method to read pressure
 float readPressure()
 {
 
@@ -149,7 +149,7 @@ float readPressure()
     else
         return 0xFFFF;   
 }
-//steve
+//iot-edge-change: add method to read magnetometer
 void readMagnetometer(int *axes)
 {
         bool hasFailed = false;
@@ -170,7 +170,7 @@ void readMagnetometer(int *axes)
     }
 }
 
-//steve
+//iot-edge-change: add method to read Accelerometer
 void readAccelerometer(int *axes)
 {
         bool hasFailed = false;
@@ -192,7 +192,7 @@ void readAccelerometer(int *axes)
     }
 }
 
-//steve
+//iot-edge-change:  add method to read Gyroscope
 void readGyroscope(int *axes)
 {
         bool hasFailed = false;
@@ -215,7 +215,7 @@ void readGyroscope(int *axes)
 }
 
 
-//steve - made lots of changes to this function....
+//iot-edge-change:  made lots of changes to this function....
 bool readMessage(int messageId, char *payload, float *temperatureValue, float *humidityValue)
 {
     JSON_Value *root_value = json_value_init_object();

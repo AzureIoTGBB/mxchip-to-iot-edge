@@ -118,7 +118,7 @@ static const char edgeCert [] =
 <<your cert string here>>
 
 ```
-where \<your cert string here> is the cert string array we just created.
+where \<your cert string here> is the cert string array we just created. This line creates a string array variable that contains our root CA certificate (from which the edge TLS server cert is signed).
 
 Scroll down to the 'setup()' method and just after this line of code
 
@@ -133,10 +133,245 @@ add this additional line of code
   DevKitMQTTClient_SetOption("TrustedCerts", edgeCert);
 ```
 
-And finally (for this file), down in the 'loop()' method, comment out this line of code as shown
+This line tells the MQTT SDK client (and the underlying MBED library) to add this certificate to it's list of trusted root certificates. And finally (for this file), down in the 'loop()' method, comment out this line of code as shown
 
 ```csharp
 //      DevKitMQTTClient_Event_AddProp(message, "temperatureAlert", temperatureAlert ? "true" : "false");
 ```
+
+This line was originally used to add an application property to the outgoing JSON message.  We aren't going to use it, and it's just noise, so we drop it.
+
+#### utility.cpp
+
+Now open the utility.cpp file.  Unfortunately, the Getting Started sample only samples from two of the many sensors on the MXChip. We are going to update the code to read from the other sensors.
+
+At the top of the file, below the line
+
+```csharp
+DevI2C *i2c;
+```
+
+declare variables to hold the additional sensors
+
+```csharp
+static HTS221Sensor *sensor;
+static LSM6DSLSensor *accelGyro;
+static LIS2MDLSensor *magnetometer;
+static LPS22HBSensor *pressure;
+```
+
+Beneath the readHumidy() method, add the following additional methods to read the other sensors
+
+```csharp
+//iot-edge-change:add method to read pressure
+float readPressure()
+{
+
+//     assert(pressure != NULL);
+    if (pressure == NULL) {
+        LogError("Trying to do readPressure while the sensor wasn't initialized.");
+        return 0xFFFF;
+    }
+
+    float presureValue;
+    if (pressure->getPressure(&presureValue) == 0)
+        return presureValue;
+    else
+        return 0xFFFF;   
+}
+//iot-edge-change: add method to read magnetometer
+void readMagnetometer(int *axes)
+{
+        bool hasFailed = false;
+
+//    assert(magnetometer != NULL);
+    if (magnetometer == NULL) {
+        LogError("Trying to do readMagnetometer while the sensor wasn't initialized.");
+        hasFailed = true;
+    }
+    else if (magnetometer->getMAxes(axes) != 0) {
+        hasFailed = true;
+    }
+
+    if (hasFailed) {
+        axes[0] = 0xFFFF;
+        axes[1] = 0xFFFF;
+        axes[2] = 0xFFFF;
+    }
+}
+
+//iot-edge-change: add method to read Accelerometer
+void readAccelerometer(int *axes)
+{
+        bool hasFailed = false;
+
+//    assert(magnetometer != NULL);
+    if (magnetometer == NULL) {
+        LogError("Trying to do readMagnetometer while the sensor wasn't initialized.");
+        hasFailed = true;
+    }
+
+    if (accelGyro->getXAxes(axes) != 0) {
+        hasFailed = true;
+    }
+
+    if (hasFailed) {
+        axes[0] = 0xFFFF;
+        axes[1] = 0xFFFF;
+        axes[2] = 0xFFFF;
+    }
+}
+
+//iot-edge-change:  add method to read Gyroscope
+void readGyroscope(int *axes)
+{
+        bool hasFailed = false;
+
+//    assert(accelGyro != NULL);
+    if (accelGyro == NULL) {
+        LogError("Trying to do readGyroscope while the sensor wasn't initialized.");
+        hasFailed = true;
+    }
+
+    if (accelGyro->getGAxes(axes) != 0) {
+        hasFailed = true;
+    }
+
+    if (hasFailed) {
+        axes[0] = 0xFFFF;
+        axes[1] = 0xFFFF;
+        axes[2] = 0xFFFF;
+    }
+}
+```
+
+select the readMessage() function and replace it with this one. We'll discuss the changes below
+
+```csharp
+bool readMessage(int messageId, char *payload, float *temperatureValue, float *humidityValue)
+{
+    JSON_Value *root_value = json_value_init_object();
+    JSON_Object *root_object = json_value_get_object(root_value);
+    char *serialized_string = NULL;
+
+    json_object_set_number(root_object, "messageId", messageId);
+
+    float t = readTemperature();
+    float h = readHumidity();
+    bool temperatureAlert = false;
+//    if(t != temperature)
+//    {
+        temperature = t;
+        *temperatureValue = t;
+        json_object_set_number(root_object, "temperature", temperature);
+//    }
+//    if(temperature > TEMPERATURE_ALERT)
+//    {
+//        temperatureAlert = true;
+//    }
+    
+//    if(h != humidity)
+//    {
+        humidity = h;
+        *humidityValue = h;
+        json_object_set_number(root_object, "humidity", humidity);
+//    }
+
+    int magAxes[3];
+    readMagnetometer(magAxes);
+    json_object_set_number(root_object, "magnetometerX", magAxes[0]);
+    json_object_set_number(root_object, "magnetometerY", magAxes[1]);
+    json_object_set_number(root_object, "magnetometerZ", magAxes[2]);
+
+    int accelAxes[3];
+    readAccelerometer(accelAxes);
+    json_object_set_number(root_object, "accelerometerX", accelAxes[0]);
+    json_object_set_number(root_object, "accelerometerY", accelAxes[1]);
+    json_object_set_number(root_object, "accelerometerZ", accelAxes[2]);
+
+    int gyroAxes[3];
+    readGyroscope(accelAxes);
+    json_object_set_number(root_object, "gyroscopeX", gyroAxes[0]);
+    json_object_set_number(root_object, "gyroscopeY", gyroAxes[1]);
+    json_object_set_number(root_object, "gyroscopeZ", gyroAxes[2]);
+
+
+//    serialized_string = json_serialize_to_string_pretty(root_value);
+    serialized_string = json_serialize_to_string(root_value);
+
+    snprintf(payload, MESSAGE_MAX_LEN, "%s", serialized_string);
+    json_free_serialized_string(serialized_string);
+    json_value_free(root_value);
+    return temperatureAlert;
+}
+```
+
+The original function only sent temperature and humidity values if they changed.  For our lab, we want to send the values every time, so we commented out the 'if' statements that surrouned them.   Next, we added calls to read the accelerometer, magnetometer, and gyroscope sensors and append those values onto our JSON object.  Finally, the json_serial_to_string_pretty function serializes the sensor readings to JSON, but adds carriage returns and line feeds into the string to make it "pretty" when it prints out.  We don't want all that extra stuff in our JSON, so we use the non-'pretty' version of the call.
+
+Save all the files (CTRL-K S).
+
+If you went this option, feel free to review the rest of the code to understand what it is doing, and then skip down to the "build and flash firmware" section.
+
+#### Option 2
+
+If you chose to just use the existing code, feel free to look through it and see the changes we made.  Each one is proceeded by a "//iot-edge-change" comment.
+
+We do have to make one change to the code, and that is to, at the top of the GetStarted.ino file, to add our cert. So open that file and at the top, just below the line
+
+```csharp
+static const char edgeCert [] =
+```
+replace the cert string array with the one you generated above.  Save all the files (CTRL-K S).
+
+### Build and flash the firmware
+
+To bulid the firmware, first we need to 'verify' it  (in 'arduino' speak, that's the same as 'compile').  To do so, hit CTRL-ALT-R.  That will compile the code and tell if you have any errors.
+
+Once that is done, we are ready to push the new fireware to the MXChip.  In the bottom right hand of VS Code, click on the "<Select Board Type>" button and pick "TODO:  get board type".  Also, if you still see "<Select Serial Port>", click on that to select the right serial port that represents your plugged in MXChip.   
+
+To push the firmware, hit CTRL-ALT-U (for 'upload').  You'll see the code get 'verified' again, and then see it pushed to the MXChip device.  You'll then see the MXChip device reset itself and start to boot.
+
+However, we aren't quite ready to connect to IoT Edge yet, because we need to configure our MXChip.
+
+###  Configure your MXChip for connectivity to IoT Edge
+
+The first thing we need to do is to decorate our MXChip device connection string.  We need to tell the Azure IoT C SDK that we want to connect to IoT Hub, but we want to do so *through* your IoT Edge box.  To do that, take the MXChip device connection string, and onto the end of it, append a semicolon, then the phrase 'GatewayHostName=' and then the FQDN to your IoT Edge box.  An example might look like this:
+
+TODO:  sample mxchip connection string.
+
+Once that is done, we are ready to configure our MXChip.
+
+TODO:   finish configuration commands....
+
+
+### Test connectivity to IoT Hub thorugh IoT Edge.
+
+Before we restart our MXChip, let's set up some monitoring
+
+In the Azure Portal, in your cloud shell, run this command
+
+```bash
+az iot hub monitor-events -n [iot hub name] -t 0
+```
+
+That will monitor the IoT Hub for messages flowing into it from the MXChip
+
+In your Putty/SSH session to your IoT Edge VM, run
+
+```bash
+sudo docker logs -f edgeHub --tail 500
+```
+
+That will show the last few lines of the edgeHub (part of the IoT Edge runtime) logs and will 'follow' them (i.e. see new entries as they arrive)
+
+TODO:  screenshots
+
+Now, hit the reset button on your MXChip.  In the MXChip putty session, you should see output showing the MXChip start, get the current time from an NTP server, connect to IoT Edge, and then start sending data.  Similar to this screenshot
+
+in the edgeHub logs, you should see entries related to the MXChip device id connecting and edgeHub opening a connection to IoT Hub on behalf of the MXChip, similar to below
+
+Finally, you should see messages flowing into the IoT Hub via the cloud shell in the azure portal.
+
+Note that the messages are flowing in at a rate of 1 per sec.  In the next module, we'll do some light "edge processing" to aggregate those messages "on-prem"  (remember, we are simulating that) before they are sent to Azure.   So let's move on to [Module 4](modules/module4.md)
 
 
