@@ -241,5 +241,5 @@ Your output will look something like this
 
 Copy everything, including the 'BEGIN CERTIFICATE' and 'END CERTIFICATE' lines and store for later use.
 
-You are now ready to move on to [Module 3](modules/module3.md) and get your MXChip up and talking to IoT Edge
+You are now ready to move on to [Module 3](/modules/module3.md) and get your MXChip up and talking to IoT Edge
 

@@ -15,4 +15,4 @@ To verify that the ST-Link drivers installed correctly, plug in your MXChip via 
 
 Go ahead and unplug your MXChip.  We'll come back to it later...
 
-That's it.  You are now ready to move on to [Module 2](modules/module2.md)
+That's it.  You are now ready to move on to [Module 2](/modules/module2.md)

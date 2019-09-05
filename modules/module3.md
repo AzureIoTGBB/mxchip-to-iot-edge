@@ -397,6 +397,6 @@ Finally, you should see messages flowing into the IoT Hub via the cloud shell in
 
 ![cloud portal success](../images/cloud-shell-success-transparent.png)
 
-Note that the messages are flowing in at a rate of 1 per sec.  In the next module, we'll do some light "edge processing" to aggregate those messages "on-prem"  (remember, we are simulating that) before they are sent to Azure.   So let's move on to [Module 4](modules/module4.md)
+Note that the messages are flowing in at a rate of 1 per sec.  In the next module, we'll do some light "edge processing" to aggregate those messages "on-prem"  (remember, we are simulating that) before they are sent to Azure.   So let's move on to [Module 4](/modules/module4.md)
 
 
