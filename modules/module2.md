@@ -214,7 +214,7 @@ Finally, let's ensure that the certificates are valid by connecting to our IoT E
 To do so, run
 
 ```bash
-openssl s_connect -connect [vm name].[location].cloudapp.azure.com:8883 --showcerts
+openssl s_client -connect [vm name].[location].cloudapp.azure.com:8883 -showcerts
 ```
 
 This will connect to our IoT Edge device similarly to an IoT leaf device would an validates the certificate.
