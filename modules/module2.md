@@ -100,7 +100,7 @@ The final step (for now) in the portal is to go ahead and set a default config f
 To set the initial configuration for our device, run this command  (note the string tick marks at the beginning and end of the json payload. Make sure you get them too):
 
 ```bash
-az iot edge set-modules -n [hub name] -d [devuce id] -k '
+az iot edge set-modules -n [hub name] -d [edge device id] -k '
 {
     "modulesContent": {
         "$edgeAgent": {
