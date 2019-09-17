@@ -20,7 +20,7 @@ You may be required to provision some storage to create the cloud shell. For thi
 
 Once you have the shell launched, we are ready to create a Virtual Machine. For this VM, we are going to use the pre-built "Ubuntu 16.04 with Azure IoT Edge runtime" VM.  This is a version of Ubuntu 16.04 Linux with the IoT Edge runtime pre-installed.
 
-Before we create the VM, let's create a resource group in Azure to contain our project services, if you don't already have one (if you already have one, feel free to skip)
+Before we create the VM, let's create a resource group in Azure to contain our project resources, if you don't already have one (if you already have one, feel free to skip)
 
 In the cloud shell, run the following command to create your resource group
 
@@ -30,7 +30,7 @@ az group create --name {your resource group name} --location {location}
 
 where {your resource group name} is the name you want to call your resource group and {location} is the Azure region in which you want to work (i.e. 'centralus'). You can find a list of available azure regions (and their abbreviations) by running this command 'az account list-locations -o table' in the azure CLI
 
-To create the VM, run this command
+To create the VM, run this command  (please note that [vm name] must be globally unique, so make it something you are sure is unique.)
 
 ```bash
 az vm create \
@@ -50,9 +50,9 @@ where
 - vm name is a globally unique name for your VM
 - location is the location you created your RG in above
 - userid is the login id you want to use for your VM
-- password is a very strong password you want to use for the userid above
+- password is a very strong password you want to use for the userid above.  Azure will force you to have a long, strong password
 
-This will create a VM with the iot edge runtime already installed and assign it the DNS name [vm name].[location].cloudapp.azure.com   (for example steveiotedgevm.centralus.cloudapp.azure.com).  
+This will create a VM with the iot edge runtime already installed and assign it the DNS name [vm name].[location].cloudapp.azure.com   (for example steveiotedgevm.centralus.cloudapp.azure.com).  This DNS/FQDN is the reason your VM name must be globally unique.
 
 NOTE:  note the DNS name of your VM, as you will use that later in the IoT Edge setup and to point your MXChip at it
 
@@ -79,7 +79,7 @@ Once the IoT Hub is created, you can create an IoT device for your MXChip in you
 az iot hub device-identity create --device-id [device id] --hub-name [hub name] 
 ```
 
-where [device id] is a name you make up for your iot device.  It does not need to be globally unique, just unique within your hub.  No underscores, no spaces!
+where [device id] is a name you make up for your iot device.  It does not need to be globally unique, just unique within your hub.  No underscores, no spaces!  We will call this our "MXChip Device ID"
 
 Run the command again (with one difference) to create the Edge device.  Note the addition of the --edge-enabled flag to let IoT Hub know we want to create an Edge device this time
 
@@ -87,7 +87,9 @@ Run the command again (with one difference) to create the Edge device.  Note the
 az iot hub device-identity create --device-id [device id] --hub-name [hub name] --edge-enabled
 ```
 
-Once the devices are created, we need to grab their connection strings.  Run this command once for each device (the mxchip iot device and the new edge device)
+We will call this one our "IoT Edge Device Id"
+
+Once the devices are created, we need to grab their connection strings.  Run this command once for each device (the mxchip device id and the iot edge device id)
 
 ```bash
 az iot hub device-identity show-connection-string --device-id [device id] --hub-name [hub name]
@@ -100,7 +102,7 @@ The final step (for now) in the portal is to go ahead and set a default config f
 To set the initial configuration for our device, run this command  (note the string tick marks at the beginning and end of the json payload. Make sure you get them too):
 
 ```bash
-az iot edge set-modules -n [hub name] -d [edge device id] -k '
+az iot edge set-modules -n [hub name] -d [iot edge device id] -k '
 {
     "modulesContent": {
         "$edgeAgent": {
@@ -194,13 +196,29 @@ You should see a status that looks similar to this..
 
 Note the green 'active' status.  If yours doesn't have the success, recheck your entries and restart edge until it does.
 
+Also, wait for about 2 or 3 minutes and run
+
+```bash
+sudo docker ps
+```
+
+You should see both edgeAgent and edgeHub, the two container-based parts of the IoT Edge runtime up and running. If not, troubleshoot the steps you took above and restart IoT edge as necessary.
+
 ### Create and install Edge certificates
 
 In order to have downstream or 'leaf' devices (like our MXChip), you must configure IoT Edge with certificates. Specifically, the end result will be a certificate that IoT Edge uses under the covers as the 'server' certificate it returns whenever a client tries to connect to prove to the client that it is the legitimate IoT Edge box it is trying to connect to.
 
 In order to create and install these certificates, follow the process outlined [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-transparent-gateway), except stop before the "Deploy Edgehub to the gateway" section (we've already done that).
 
-The final step with certificates is to install the certificates on the local IoT Edge OS.  To do so, follow [this section](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-connect-downstream-device#ubuntu).  Only execute the two commands in that section and return back here.
+The final step with certificates is to install the certificates on the local IoT Edge OS.  To do so, run these commands
+
+```bash
+sudo cp <path>/azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
+
+sudo update-ca-certificates
+```
+
+replacing \<path> with the path in which you generated your certificates.
 
 Once we are done, restart IoT Edge again with these commands and make sure it's up and going again..
 

@@ -5,7 +5,7 @@ The first step in getting the MXChip connected through Azure IoT Edge is to set 
 
 ## Install pre-requisites
 
-To setup the development environment for the MXChip, following the instructions provided [here](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-arduino-iot-devkit-az3166-get-started#prepare-the-development-environment).  Start at the "Prepare the Development Environment" section, but stop when you reach the "Build your first project" section
+To setup the development environment for the MXChip, following the instructions provided [here](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-arduino-iot-devkit-az3166-get-started#prepare-the-development-environment).  Start at the "Prepare the Development Environment" section, but STOP WHEN YOU REACH THE "Build your first project" section
 
 ## Verify MXChip drivers installation
 

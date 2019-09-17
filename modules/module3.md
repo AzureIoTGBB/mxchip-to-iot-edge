@@ -325,7 +325,7 @@ replace the cert string array with the one you generated above.  Save all the fi
 
 To bulid the firmware, first we need to 'verify' it  (in 'arduino' speak, that's the same as 'compile').  To do so, hit CTRL-ALT-R.  That will compile the code and tell if you have any errors.
 
-Once that is done, we are ready to push the new fireware to the MXChip.  In the bottom right hand of VS Code, click on the "<Select Board Type>" button and for the "Selected Board", pick "AZ3166" (which is the model number for the MXChip).  Also, if you still see "<Select Serial Port>", click on that to select the right serial port that represents your plugged in MXChip.   
+Once that is done, we are ready to push the new fireware to the MXChip.  In the bottom right hand of VS Code, click on the "\<Select Board Type>" button and for the "Selected Board", pick "AZ3166" (which is the model number for the MXChip).  Also, if you still see "\<Select Serial Port>", click on that to select the right serial port that represents your plugged in MXChip.   
 
 To push the firmware, hit CTRL-ALT-U (for 'upload').  You'll see the code get 'verified' again, and then see it pushed to the MXChip device.  You'll then see the MXChip device reset itself and start to boot.
 
@@ -333,7 +333,7 @@ However, we aren't quite ready to connect to IoT Edge yet, because we need to co
 
 ###  Configure your MXChip for connectivity to IoT Edge
 
-The first thing we need to do is to decorate our MXChip device connection string.  We need to tell the Azure IoT C SDK that we want to connect to IoT Hub, but we want to do so *through* your IoT Edge box.  To do that, take the MXChip device connection string, and onto the end of it, append a semicolon, then the phrase 'GatewayHostName=' and then the FQDN to your IoT Edge box.  An example might look like this:
+The first thing we need to do is to decorate our MXChip device connection string.  We need to tell the Azure IoT C SDK that we want to connect to IoT Hub, but we want to do so *through* your IoT Edge box.  To do that, take the ***MXChip device connection string***  (NOT the Edge one), and onto the end of it, append a semicolon, then the phrase 'GatewayHostName=' and then the FQDN to your IoT Edge box.  An example might look like this:
 
 ```bash
 HostName=sdbiothub1.azure-devices.net;DeviceId=mxchip1;
@@ -342,9 +342,15 @@ SharedAccessKey=flz56UH6NcvCpmzX61lBoZGr8A8AH5ytuClZg6+0rcg=;GatewayHostName=sdb
 
 Once that is done, we are ready to configure our MXChip.
 
-Open up another instance of the Putty app.  Choose "Serial" for the connection, input the right COM port for your MXChip, and set the baud rate to 115200.  Hit "Connect"
+Open up another instance of the Putty app.  Choose "Serial" for the connection, input the right COM port for your MXChip, and set the baud rate to 115200.  
 
-Hold down the "A" button on the MXChip and hit reset.  This will put the MXChip in configuration mode and you should see a configuration screen similar to the following
+For example, for the MXChip previously shown in module 1 connected to "COM3", the putty setup might look like this
+
+![mxchip serial setup](/images/mxchip-putty-serial-session.png)
+
+Hit "Connect"
+
+Hold down the "A" button on the MXChip and hit reset *then* release the "A" button on the MXChip.  This will put the MXChip in configuration mode and you should see a configuration screen similar to the following
 
 ![mxchip config screen](../images/mxchip-setup-main-screen.png)
 
@@ -363,7 +369,7 @@ run
 set_az_iothub <connection string>
 ```
 
-where \<connection string > is the connection string we just created, with the GatewayHostName on the end. You should be able to copy/paste it into this putty window.  We have seen trouble, however, with the entire connection string making it in, so be sure the whole thing makes it
+where \<connection string > is the connection string we just created, with the GatewayHostName on the end (the MXChip one, NOT Edge). You should be able to copy/paste it into this putty window.  We have seen trouble, however, with the entire connection string making it in, so be sure the whole thing makes it
 
 ### Test connectivity to IoT Hub thorugh IoT Edge.
 
