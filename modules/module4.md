@@ -27,7 +27,7 @@ An ASA job consists of three parts:
 
 To create the ASA job:
 
-* in the Azure portal, navigate in the left nav bar to the Azure Stream Analytics jobs blade and click Add
+* in the Azure portal, navigate in the left nav bar to the Azure Stream Analytics jobs blade and click Add  (NOTE: you may not already have Azure Stream Analytics on your left nav, if not, then click on 'All Services' in the upper-left name and search for 'Stream Analytics jobs" and choose it from the results)
   * give your ASA job a unique name (e.g. edgeASAJob)
   * under resource group, choose "use existing" and pick the same resource group that contains your IoT Hub
   * for Hosting Environment, choose "Edge" to indicate that we plan to host this ASA job on IoT Edge.  The same ASA job could, alternately, be hosted in the cloud and aggregate the data *after* it made it to IoT Hub.

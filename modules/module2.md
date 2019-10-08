@@ -16,7 +16,8 @@ To create a "cloud shell" instance, login to the Azure portal, and click the but
 
 ![cloud shell icon](/images/cloud-shell-icon.png)
 
-You may be required to provision some storage to create the cloud shell. For this lab, choose "bash" as the type of shell.
+
+NOTE:  For this lab, choose "bash" as the type of shell.  You may be required to provision some storage to create the cloud shell. 
 
 Once you have the shell launched, we are ready to create a Virtual Machine. For this VM, we are going to use the pre-built "Ubuntu 16.04 with Azure IoT Edge runtime" VM.  This is a version of Ubuntu 16.04 Linux with the IoT Edge runtime pre-installed.
 
@@ -52,6 +53,8 @@ where
 - userid is the login id you want to use for your VM
 - password is a very strong password you want to use for the userid above.  Azure will force you to have a long, strong password
 
+NOTE:  if you chose PowerShell instead of bash for the cloud shell type, you'll need to replace the '\''s in the command above with backticks (`).
+
 This will create a VM with the iot edge runtime already installed and assign it the DNS name [vm name].[location].cloudapp.azure.com   (for example steveiotedgevm.centralus.cloudapp.azure.com).  This DNS/FQDN is the reason your VM name must be globally unique.
 
 NOTE:  note the DNS name of your VM, as you will use that later in the IoT Edge setup and to point your MXChip at it
@@ -79,7 +82,7 @@ Once the IoT Hub is created, you can create an IoT device for your MXChip in you
 az iot hub device-identity create --device-id [device id] --hub-name [hub name] 
 ```
 
-where [device id] is a name you make up for your iot device.  It does not need to be globally unique, just unique within your hub.  No underscores, no spaces!  We will call this our "MXChip Device ID"
+where [device id] is a name you make up for your iot device.  It does not need to be globally unique, just unique within your hub.  No underscores, no spaces!  We will refer to this later as our "MXChip Device ID"
 
 Run the command again (with one difference) to create the Edge device.  Note the addition of the --edge-enabled flag to let IoT Hub know we want to create an Edge device this time
 
@@ -87,7 +90,7 @@ Run the command again (with one difference) to create the Edge device.  Note the
 az iot hub device-identity create --device-id [device id] --hub-name [hub name] --edge-enabled
 ```
 
-We will call this one our "IoT Edge Device Id"
+We will refer to this one later as our "IoT Edge Device Id"
 
 Once the devices are created, we need to grab their connection strings.  Run this command once for each device (the mxchip device id and the iot edge device id)
 
@@ -147,13 +150,14 @@ az iot edge set-modules -n [hub name] -d [iot edge device id] -k '
             }
         }
     }
-}
-'
+}'
 ```
 
 ### Allow MQTTs traffic to VM
 
-The last thing we need to in the portal is to allow MQTTS traffic into our VM from external.  In the Azure Portal, navigate to "Virtual Machines", choose your VM, then click on "Networking" on the left-hand nav.  On the Networking blade, select "Add inbound port rule"
+The last thing we need to in the portal is to allow MQTTS traffic into our VM from external.  The MXChip code is written to connect over MQTTS into the IoT Edge box, so we need to allow that traffic into our VM.
+
+In the Azure Portal, navigate to "Virtual Machines", choose your VM, then click on "Networking" on the left-hand nav.  On the Networking blade, select "Add inbound port rule"
 
 - for destination port range, enter 8883
 - for Port Name, enter "AllowMQTTs"
@@ -208,8 +212,66 @@ You should see both edgeAgent and edgeHub, the two container-based parts of the 
 
 In order to have downstream or 'leaf' devices (like our MXChip), you must configure IoT Edge with certificates. Specifically, the end result will be a certificate that IoT Edge uses under the covers as the 'server' certificate it returns whenever a client tries to connect to prove to the client that it is the legitimate IoT Edge box it is trying to connect to.
 
-In order to create and install these certificates, follow the process outlined [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-create-transparent-gateway), except stop before the "Deploy Edgehub to the gateway" section (we've already done that).
+In order to create and install these certificates, we will pull down a set of 'convenience scripts' (i.e. dev/test scripts) to create self-signed certificates.  In production, you'll want to use real certs from a real Certificate Authority, but for our testing purposes we can use self-signed.
 
+#### Create Certificates
+
+To pull down the convenience scripts, run this command.
+
+```bash
+git clone https://github.com/Azure/iotedge.git
+```
+
+To generate the certificates, create a folder on your VM that we can use and copy the scripts over to it..  i called mine 'edge'
+
+```bash
+mkdir edge
+cd edge
+cp ../iotedge/tools/CACertificates/*.cnf .
+cp ../iotedge/tools/CACertificates/certGen.sh .
+```
+
+The first thing we will do is create a root CA certificate. This is the cert that will be used as the 'root of trust' for our Edge device.  This will, eventually, be the certificate that we add to our MXChip's trusted root store to get it to verify and trust our IoT Edge box.  To create the cert (from within our edge box), run
+
+```bash
+./certGen.sh create_root_and_intermediate
+```
+
+The next thing we need to do is to generate a certificate, signed by our root certificate, that is specific to our IoT Edge box.  Run:
+
+```bash
+./certGen.sh create_edge_device_ca_certificate "MyEdgeDeviceCA"
+```
+You can replace "MyEdgeDeviceCA" with any name you want.  It doesn't have to be the same as your IoT Edge hostname.
+
+This script creates a number of certificates, the most important of which are these two:
+- edge/certs/iot-edge-device-ca-MyEdgeDeviceCA-full-chain.cert.pem
+- edge/private/iot-edge-device-ca-MyEdgeDeviceCA.key.pem
+
+They represent the certificate for the IoT Edge device and its corresponding private key.
+
+#### Install certificates onto the IOT Edge box
+
+To install the certificate onto the IoT Edge box, open the /etc/iotedge/config.yaml file again:
+
+```bash
+sudo nano /etc/iotedge/config.yaml
+```
+
+find the section titled "certificates" and replace the paths to the certificates with the path to the certificates you created above.
+
+For example, if you just created the 'edge' folder in the root of your home space under your user account, the entries might look like this:
+
+certificates:
+   device_ca_cert: "/home/<userid>/edge/certs/iot-edge-device-ca-MyEdgeDeviceCA-full-chain.cert.pem"
+   device_ca_pk: "/home/<userid>/edge/private/iot-edge-device-ca-MyEdgeDeviceCA.key.pem"
+   trusted_ca_certs: "/home/<userid>/edge/certs/azure-iot-test-only.root.ca.cert.pem"
+
+where \<userid> is the username you a logged into your VM with.
+
+Once you've updated, save the file with CTRL-O, \<enter>, CTRL-X
+
+#### install certificates into local Edge boxe's trust root cert store
 The final step with certificates is to install the certificates on the local IoT Edge OS.  To do so, run these commands
 
 ```bash
@@ -229,7 +291,7 @@ sudo systemctl status iotedge
 
 Finally, let's ensure that the certificates are valid by connecting to our IoT Edge box over a TLS connection.
 
-To do so, run
+To do so, from your IOT Edge VM, run
 
 ```bash
 openssl s_client -connect [vm name].[location].cloudapp.azure.com:8883 -showcerts
@@ -237,7 +299,7 @@ openssl s_client -connect [vm name].[location].cloudapp.azure.com:8883 -showcert
 
 This will connect to our IoT Edge device similarly to an IoT leaf device would an validates the certificate.
 
-At the top of the ouput, you can see the certificate chain, as explain in [this article](https://docs.microsoft.com/en-us/azure/iot-edge/iot-edge-certs).  However, the most important item is the verification at the bottom.  I should look like this (with the "Verify (ok)" output)
+At the top of the ouput, you can see the certificate chain, as explained in [this article](https://docs.microsoft.com/en-us/azure/iot-edge/iot-edge-certs).  However, the most important item is the verification at the bottom.  I should look like this (with the "Verify (ok)" output)
 
 ![verified cert](/images/iot-edge-verify-cert.png)
 

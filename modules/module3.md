@@ -314,6 +314,8 @@ If you went this option, feel free to review the rest of the code to understand 
 
 If you chose to just use the existing code, feel free to look through it and see the changes we made.  Each one is proceeded by a "//iot-edge-change" comment.
 
+Replace the entire contents of your GetStarted.ino file and your "utility.cpp" file with the code found in [GetStarted.ino](/code/GetStarted.ino) and [utility.cpp](/code/utility.cpp).   You can just delete the existing files and copy these over, or use Copy/Paste to do it.
+
 We do have to make one change to the code, and that is to, at the top of the GetStarted.ino file, to add our cert. So open that file and at the top, just below the line
 
 ```csharp
